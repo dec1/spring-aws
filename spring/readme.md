@@ -118,6 +118,20 @@ Endpoints:
 
 ---
 ## Containers
+You _can_ embed the Spring application in a container, and run this container (e.g with docker or podman) locally.
+You _must_ embed the application in a container image, and push the image to a registry defined in `../cdk/app/config/app-config.ts` in order to deploy it to AWS. Remember to update the image tag in `app-config.ts` and re-run `cdk deploy ...` every time you push a new image (tag) to the registry. 
+
+(_Note_: Even if you push new content to an existing tag without changing it, you still need to run `cdk deploy` to force ECS to pull the updated image - however, this is bad practice as it makes it hard to track what's actually deployed. Prefer using unique tags for each build.)
+
+### Proxy (e.g Zscaler)
+You may need to add the following to `gradle.properties` (or even better `~/.gradle/gradle.properties` since the settings are machine specific), as the proxy can increase the time required for Jib to push images enough to cause timeouts with default settings:
+```properties
+systemProp.jib.httpTimeout=300000
+systemProp.jib.connectionTimeout=300000
+```a
+
+Also, `jibDockerBuild` can't be used to build local images (for local running/testing) if you're behind a proxy like [Zscaler](local/proxy/readme.md), since Jib can't configure containers with custom certificates needed to access the internet from behind the proxy.
+
 
 
 
