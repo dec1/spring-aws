@@ -1,6 +1,7 @@
 package dec.aws.controller
 
 import dec.aws.service.Aws
+import dec.aws.service.HttpProbe
 import io.swagger.v3.oas.annotations.Operation
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.env.Environment
@@ -25,6 +26,14 @@ class ApiController(private val env: Environment){
     @RequestMapping("/hello", method = [RequestMethod.GET])
     fun greet(): String {
         return "Welcome to ${getAppName()}, version ${getAppVersion()}"
+    }
+
+    // http://localhost:8080/api/http_hello
+    @Operation(summary = "Brief Info", description = "Test Http connectivity")
+    @RequestMapping("/http_hello", method = [RequestMethod.GET])
+    fun http_hello(): String {
+        val probe_val = HttpProbe().probe()
+        return "Http hello says: $probe_val"
     }
 
 

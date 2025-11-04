@@ -119,37 +119,21 @@ Endpoints:
 ---
 ## Containers
 
-Jib builds container images without docker, which is ideal e.g.  for ci which, on success,  pushes a container with the app embedded to a registry (from which the app can in turn can be pulled from by remote deployments).
 
-However, JIB cant configure these containers with custom certs, which you will need in order to run them locally behind proxy like [zscaler](local/proxy/readme.md). For this you must use [docker](local/docker/readme.md)
 
 ### Jib
 
-**Summary:** Jib builds container images without Docker. Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.gradle.kts`.
+Jib builds container images without docker, which is ideal e.g.  for ci which, on success,  pushes a container with the app embedded to a registry (from which the app can in turn can be pulled from by remote deployments).
+Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.gradle.kts`.
 
 - Setup 
     - _JAVA_HOME_ - set (as documented above) to appropriate JDK (eg java 21 - kotlin is not yet compatible with java 24, which may be the default jdk globally)
-    - _Proxy_ - if behind one like zscaler, that re-signs certs, make sure to [import](local/proxy/readme.md) any certs needed into the jdk being used. Jib needs to eb able to push images.
+    - _Proxy_ - if behind one like zscaler, that re-signs certs, make sure to [import](local/proxy/readme.md) any certs needed into the jdk being used. Jib needs to be able to push images.
+
+
 
 #####
-- **build** image (locally, without needing docker installed)
-    - `./gradlew [clean] jibDockerBuild`
-
-#####
-- **run** locally _(optional)_
-    - `docker run -p 8080:8080 dec1/my_app`
-
-  build local (tagged) image (requires local docker installation)
-  eg _dec1/spring-aws-app:1.13.0_
-
-    - run locally, eg:
-        - linux/macos:
-            - `docker run --rm -p 8080:8080 --name spring-aws-app -v ${HOME}/.aws:/root/.aws -e AWS_PROFILE=mpb dec1/spring-aws-app:1.13.0`
-        - wsl:
-            - `docker run --rm -p 8080:8080 --name spring-aws-app -v /mnt/c/Users/<user-name>/.aws:/root/.aws -e AWS_PROFILE=mpb dec1/spring-aws-app:1.13.0`
-
-#####
-- **push to Docker Hub**
+- **build and push to Docker Hub**
     - in `build.gradle.kts`, uncomment the Docker Hub image line:
         - `image = "dec1/spring-aws-app:$version"`
 
@@ -169,7 +153,7 @@ However, JIB cant configure these containers with custom certs, which you will n
         - `./gradlew clean jib`
 
 #####
-- **push to Amazon ECR**
+- **build push to Amazon ECR**
     - in `build.gradle.kts`, uncomment the ECR image line (update account-id and region):
         - `image = "111122223333.dkr.ecr.us-east-1.amazonaws.com/spring-aws-app:$version"`
 
@@ -190,6 +174,26 @@ However, JIB cant configure these containers with custom certs, which you will n
         - `ecr:GetAuthorizationToken` (for login)
         - `ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`, `ecr:PutImage` (for push)
         - attach `AmazonEC2ContainerRegistryPowerUser` policy, or create custom policy with these permissions
+
+
+
+### Docker (alternative to Jib)
+
+Use [Docker](local/docker/readme.md) instead of Jib if you're behind a proxy like [Zscaler](local/proxy/readme.md) and want to run containers locally. Jib can't configure containers with custom certificates needed for proxies.
+   
+See the detailed [Docker readme](local/docker/readme.md) for building images with custom certificates.
+
+**Quick reference - running pre-built images:**
+- Basic run:
+    - `docker run -p 8080:8080 dec1/spring-aws-app:1.13.0`
+
+- With AWS credentials:
+    - Linux/MacOS:
+        - `docker run --rm -p 8080:8080 --name spring-aws-app -v ${HOME}/.aws:/root/.aws -e AWS_PROFILE=mpb dec1/spring-aws-app:1.13.0`
+    - WSL:
+        - `docker run --rm -p 8080:8080 --name spring-aws-app -v /mnt/c/Users/<user-name>/.aws:/root/.aws -e AWS_PROFILE=mpb dec1/spring-aws-app:1.13.0`
+
+
 ---
 
 ## Spring Profiles
