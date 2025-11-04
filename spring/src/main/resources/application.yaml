@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: spring-aws
+
+app:
+  version: ${projectVersion}    # from build.gradle.kts
+
+server:
+    port: 8080                            # default is 8080
+    forward-headers-strategy: FRAMEWORK  # default is NATIVE
+
+logging:
+  level:
+    org.springframework.core.env: DEBUG
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,env,beans,prometheus,*" # Or "health,info,*" to expose all
+                                          # ,beans,configprops,mappings,loggers,threaddump,httpexchanges"
