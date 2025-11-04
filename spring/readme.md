@@ -110,8 +110,8 @@ Endpoints:
         - [https://dev.api.`<domain-name>:<appPortNum>`/swagger-ui/index.html](https://dev.api.<domain-name>/swagger-ui/index.html)
       - ....
     - release
-        - [https://api.`<domain-name>:<appPortNum>`/api/hello](https://dev.api.<domain-name>/api/hello)
-        - [https://api.`<domain-name>:<appPortNum>`/swagger-ui/index.html](https://dev.api.<domain-name>/swagger-ui/index.html)
+        - [https://api.`<domain-name>:<appPortNum>`/api/hello](https://api.<domain-name>/api/hello)
+        - [https://api.`<domain-name>:<appPortNum>`/swagger-ui/index.html](https://api.<domain-name>/swagger-ui/index.html)
       - ....
     
     `domain-name` and `appPortNum` should match values configured (for aws) in cdk `app/config/app-config.json`
@@ -123,7 +123,7 @@ Endpoints:
 
 ### Jib
 
-Jib builds container images without docker, which is ideal e.g.  for ci which, on success,  pushes a container with the app embedded to a registry (from which the app can in turn can be pulled from by remote deployments).
+Jib builds container images without docker, which is ideal e.g.  for CI which, on success,  pushes a container with the app embedded to a registry (from which the app can in turn can be pulled from by remote deployments).
 Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.gradle.kts`.
 
 - Setup 
@@ -133,7 +133,7 @@ Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.g
 
 
 #####
-- **build and push to Docker Hub**
+- **build** and **push** to **Docker Hub**
     - in `build.gradle.kts`, uncomment the Docker Hub image line:
         - `image = "dec1/spring-aws-app:$version"`
 
@@ -153,7 +153,7 @@ Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.g
         - `./gradlew clean jib`
 
 #####
-- **build push to Amazon ECR**
+- **build** and **push** to **ECR**
     - in `build.gradle.kts`, uncomment the ECR image line (update account-id and region):
         - `image = "111122223333.dkr.ecr.us-east-1.amazonaws.com/spring-aws-app:$version"`
 
