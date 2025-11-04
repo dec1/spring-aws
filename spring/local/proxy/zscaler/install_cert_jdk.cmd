@@ -41,7 +41,7 @@ set "JDK_DIR=%JDKS_DIR%\%JDK_NAME%"
 set "KEYSTORE=%JDK_DIR%\lib\security\cacerts"
 
 
-set "CERT_PATH=..\zscaler.pem"
+set "CERT_PATH=zscaler.pem"
 set "ALIAS=zscaler"
 set "STOREPASS=changeit"
 

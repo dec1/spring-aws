@@ -17,7 +17,7 @@
 
 ###
 - _Proxy (e.g. Zscaler)_
-    If using a [proxy](local/proxy/readme.md) like zscaler -- make sure to import cert into jdk if you want to run app locally. 
+    If using a proxy like zscaler -- make sure to [import](local/proxy/readme.md) cert into jdk if you want to run app locally. App needs to download dependencies at build time, and to access the internet at runtime.
 
 ###
 - **_AWS_ runtime access and credentials**  
@@ -127,9 +127,9 @@ However, JIB cant configure these containers with custom certs, which you will n
 
 **Summary:** Jib builds container images without Docker. Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.gradle.kts`.
 
-- `JAVA_HOME` 
-    - set JAVA_HOME (as documented above) to appropriate JDK (eg java 21 - kotlin is not yet compatible with java 24, which may be the default jdk globally)
-
+- Setup 
+    - _JAVA_HOME_ - set (as documented above) to appropriate JDK (eg java 21 - kotlin is not yet compatible with java 24, which may be the default jdk globally)
+    - _Proxy_ - if behind one like zscaler, that re-signs certs, make sure to [import](local/proxy/readme.md) any certs needed into the jdk being used. Jib needs to eb able to push images.
 
 #####
 - **build** image (locally, without needing docker installed)
