@@ -21,7 +21,7 @@ plugins {
 }
 
 group = "dec"
-version = "1.60.0"
+version = "1.62.0"
 val ver_jdk = 21
 
 kotlin {
@@ -111,7 +111,7 @@ tasks.bootJar {
 //---------------------------------------------------------------------------------
 // Ensure `resources/application.yaml` gets the  version (defined above)  injected
 // Note: This requires using gradle to build (so intellij internal build wont work)
-// There seems to be no way to have single source of truth for varaibles in build.gradle.kt and application*yaml
+// There seems to be no way to have single source of truth for variables in build.gradle.kt and application*yaml
 // without "manual" copying like this
 tasks.processResources {
     filteringCharset = "UTF-8"

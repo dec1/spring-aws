@@ -142,8 +142,16 @@ However, JIB cant configure these containers with custom certs, which you will n
         - `image = "dec1/spring-aws-app:$version"`
 
     - set credentials (Docker Hub uses credentials directly, no separate auth step needed):
-        - `export JIB_USERNAME=<your-dockerhub-username>`
-        - `export JIB_PASSWORD=<your-dockerhub-password>`
+
+        - Linux/MacOS:
+            * `export JIB_USERNAME=<your-dockerhub-username>`
+            * `export JIB_PASSWORD=<your-dockerhub-password>`
+        - Windows PowerShell:
+            * `$env:JIB_USERNAME="<your-dockerhub-username>"`
+            * `$env:JIB_PASSWORD="<your-dockerhub-password>"`
+        - Windows Command Prompt:
+            * `set JIB_USERNAME=<your-dockerhub-username>`
+            * `set JIB_PASSWORD=<your-dockerhub-password>`
 
     - build and push:
         - `./gradlew clean jib`
