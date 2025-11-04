@@ -20,28 +20,40 @@
     If using a [proxy](local/proxy/readme.md) like zscaler -- make sure to import cert into jdk if you want to run app locally. 
 
 ###
-- _AWS_ credentials  
-    Ensure the app has access to required AWS credentials when running:
+- **_AWS_ runtime access and credentials**  
+    The app contains functionality that allows it to interact with resources like S3 buckets in AWS at runtime (independently of whether it's deployed in AWS or running locally). For this it needs access to the required AWS credentials when running:
 
-    - **Locally**  
-        Make sure your SSO (token) credentials are up to date and assigned to a profile:  
-        ```bash
-        aws configure sso --profile mpb
-        ```  
-        Set the profile name for the app:  
-        ```bash
-        export AWS_PROFILE=mpb
-        ```  
-        The app will then access AWS resources using the permissions of your local credentials.
+    ####
+    - _1) **Locally** (app is running on local machine)_  
+        You can use either SSO or IAM user credentials:
+        
+        - **SSO** (recommended for organizations):
+            - Configure SSO profile:
+                - `aws configure sso --profile mpb`
+            - Login when needed (tokens expire):
+                - `aws sso login --profile mpb`
+            - Set the profile for the app:
+                - `export AWS_PROFILE=mpb`
+        
+        - **IAM User** (with access keys):
+            - Configure credentials:
+                - `aws configure --profile mpb`
+                (Enter your access key ID, secret access key, region, and output format)
+            - Set the profile for the app:
+                - `export AWS_PROFILE=mpb`
+            - Credentials are stored in `~/.aws/credentials`
+        
+        The app will access AWS resources using the permissions of your configured credentials.
 
-    - **Remotely (in AWS)**  
+    ####
+    - _2) **Remotely** (app is deployed in AWS)_ 
         When the app runs in a container (for example, on ECS or EKS), it uses the IAM role defined in your infrastructure code (e.g. CDK or CloudFormation).  
         That role determines what AWS resources the app can access at runtime.  
         Both sets of credentials interact in this case:
-        - Your local credentials (used to deploy the infrastructure) act as an **upper boundary**—they control what permissions can be assigned to the IAM role.  
+        - Your local credentials (used to deploy the infrastructure) act as an **upper boundary** — they control what permissions can be assigned to the IAM role.  
         - The IAM role itself acts as a **runtime boundary**—it limits what the running container can actually do.
 
-        In effect, the app’s access to AWS resources is constrained by both your deployment credentials and the IAM role’s defined permissions.
+        In effect, the app's access to AWS resources is constrained by both your deployment credentials and the IAM role's defined permissions.
 
   
 ### Build
@@ -115,16 +127,16 @@ However, JIB cant configure these containers with custom certs, which you will n
 
 **Summary:** Jib builds container images without Docker. Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.gradle.kts`.
 
-- `JAVA_HOME`
-    - set JAVA_HOME to appropriate JDK (eg java 21 - kotlin is not yet compatible with java 24, which may be the default jdk globally)
-        -  eg on macos:
-            - `export JAVA_HOME=$(/usr/libexec/java_home -v 21)`
+- `JAVA_HOME` 
+    - set JAVA_HOME (as documented above) to appropriate JDK (eg java 21 - kotlin is not yet compatible with java 24, which may be the default jdk globally)
+
 
 #####
 - **build** image (locally, without needing docker installed)
     - `./gradlew [clean] jibDockerBuild`
 
-- **run**
+#####
+- **run** locally _(optional)_
     - `docker run -p 8080:8080 dec1/my_app`
 
   build local (tagged) image (requires local docker installation)
