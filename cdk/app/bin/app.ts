@@ -67,7 +67,7 @@ function createStack(name: string) {
     hostedZoneId,
     subdomain:          envCfg.subdomain!,
     s3BucketName:       envCfg.s3BucketName,
-    bucketIsCdkManaged: envCfg.bucketIsCdkManaged,
+    s3BucketIsCdkManaged: envCfg.s3BucketIsCdkManaged,
 
     terminationWaitTimeMinutes,
     appPortNum,

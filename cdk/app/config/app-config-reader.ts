@@ -19,7 +19,7 @@ export interface EnvConfig {
   /** optional explicit S3 bucket name for this environment */
   readonly s3BucketName?: string;
   /** whether to import bucket should be created/deleted by cdk automatically or is independent*/
-  readonly bucketIsCdkManaged?: boolean; 
+  readonly s3BucketIsCdkManaged?: boolean; 
   /** subdomain (e.g. 'dev.api', 'k8s.dev.api', etc.) */
   readonly subdomain?: string;
 }
@@ -102,7 +102,7 @@ export function loadAppConfig(context: any): ResolvedAppConfig {
       healthCheckCommand:        raw.healthCheckCommand,
       healthCheckPath:           raw.healthCheckPath,
       s3BucketName:              raw.s3BucketName,
-      bucketIsCdkManaged:        raw.bucketIsCdkManaged,
+      s3BucketIsCdkManaged:      raw.s3BucketIsCdkManaged,
       subdomain:                 raw.subdomain,
     };
   }
