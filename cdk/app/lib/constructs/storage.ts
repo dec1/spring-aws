@@ -12,6 +12,10 @@ export interface StorageConstructProps {
   bucketName?: string;
   /** Whether to create bucket if it doesn't exist (default: true) */
   createIfNecessary?: boolean;
+  /** Number of noncurrent versions to retain (default: 10, set to 0 to disable FIFO) */
+  maxNoncurrentVersions?: number;
+  /** Days after objects become noncurrent before deletion (default: 1) */
+  noncurrentVersionExpirationDays?: number;
 }
 
 /**
@@ -39,12 +43,17 @@ export class StorageConstruct extends Construct {
     const shouldCreate = props.createIfNecessary !== false;
 
     if (shouldCreate) {
+      // Default FIFO configuration
+      const maxVersions = props.maxNoncurrentVersions ?? 10;
+      const expirationDays = props.noncurrentVersionExpirationDays ?? 1;
+
       /**
        * Provisions an S3 bucket with the following configuration:
        * - bucketName: Uses the provided name or a default CDK-generated name
        * - encryption: Uses AWS-managed server-side encryption (SSE-S3)
        * - blockPublicAccess: Blocks all public access to the bucket and its objects
        * - versioned: Enables versioning to retain object versions
+       * - lifecycleRules: Implements FIFO version limiting (keeps newest N versions)
        */
       this.dataBucket = new s3.Bucket(this, 'DataBucket', {
         bucketName: props.bucketName,
@@ -53,8 +62,18 @@ export class StorageConstruct extends Construct {
         versioned: true,
         removalPolicy: cdk.RemovalPolicy.DESTROY, // Delete bucket on stack deletion
         autoDeleteObjects: true, // Delete objects on bucket deletion
+        lifecycleRules: maxVersions > 0 ? [
+          {
+            // FIFO versioning: keeps only the N newest noncurrent versions
+            noncurrentVersionExpiration: cdk.Duration.days(expirationDays),
+            noncurrentVersionsToRetain: maxVersions,
+          },
+        ] : undefined,
       });
       console.log(`[Storage] Creating bucket: ${props.bucketName}`);
+      if (maxVersions > 0) {
+        console.log(`[Storage] FIFO versioning enabled: keeping ${maxVersions} noncurrent versions, ${expirationDays} day(s) grace period`);
+      }
     } else {
       // Import existing bucket
       this.dataBucket = s3.Bucket.fromBucketName(this, 'DataBucket', props.bucketName);

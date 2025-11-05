@@ -41,7 +41,9 @@ export interface AppStackProps extends cdk.StackProps {
     targetGroupHealthyThresholdCount: number;
   };
   s3BucketName?: string;
-  bucketIsCdkManaged?: boolean;
+  s3BucketIsCdkManaged?: boolean;
+  s3BucketMaxNoncurrentVersions?: number;
+  s3BucketNoncurrentVersionExpirationDays?: number;
   terminationWaitTimeMinutes?: number;
   greenImageTag?: string;
   appPortNum: number;
@@ -90,8 +92,10 @@ export class AppStack extends cdk.Stack {
     // Pass bucket name and create flag if provided
     const storageProps: StorageConstructProps = {};
     if (props.s3BucketName) {
-      storageProps.bucketName = props.s3BucketName;
-      storageProps.createIfNecessary = props.bucketIsCdkManaged ?? true;
+    storageProps.bucketName = props.s3BucketName;
+    storageProps.createIfNecessary = props.s3BucketIsCdkManaged ?? true;
+    storageProps.maxNoncurrentVersions = props.s3BucketMaxNoncurrentVersions ?? 10;
+    storageProps.noncurrentVersionExpirationDays = props.s3BucketNoncurrentVersionExpirationDays ?? 1;
     }
     const storage = new StorageConstruct(this, 'ApplicationStorage', storageProps);
     
