@@ -15,7 +15,7 @@ const account = resolvedAppConfig.account;
 const region  = resolvedAppConfig.region;
 
 const serviceName = resolvedAppConfig.serviceName;
-const domainName  = resolvedAppConfig.domainName;
+const apexDomain  = resolvedAppConfig.apexDomain;
 const hostedZoneId = resolvedAppConfig.hostedZoneId;
 
 const terminationWaitTimeMinutes = resolvedAppConfig.terminationWaitTimeMinutes;
@@ -63,9 +63,9 @@ function createStack(name: string) {
     serviceName,
     stagingEnvironment: envCfg.stagingEnvironment,
     computePlatform:    envCfg.computePlatform,
-    domainName,
+    apexDomain,
     hostedZoneId,
-    subdomain:          envCfg.subdomain!,
+    hostnamePrefix:     envCfg.hostnamePrefix!,
     s3BucketName:       envCfg.s3BucketName,
     s3BucketIsCdkManaged: envCfg.s3BucketIsCdkManaged,
 

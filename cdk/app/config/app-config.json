@@ -1,11 +1,11 @@
 {
   "account": "123456789000",
+  "region": "eu-west-3",
   "serviceName": "my-backend",
-  "domainName": "my-aws-domain.com",
+  "apexDomain": "my-aws-domain.com",
   "hostedZoneId": "ABCDEFGHIJ1234567890",
 
-
-  "wantGrafana": true,
+  "wantGrafana": false,
   "appPortNum": 8080,
   "terminationWaitTimeMinutes": 5,
 
@@ -14,15 +14,15 @@
     "computePlatform": "ecs",
     "imageSource": "dockerhub",
     "repositoryName": "dec1/spring-aws-app",
-    "s3BucketName": "my-backend-bucket-dev",
-    "bucketIsCdkManaged": true,
-    "imageTag": "1.59.0",
+    "s3BucketName": "mpb-backend-bucket-dev",
+    "s3BucketIsCdkManaged": true,
+    "imageTag": "1.62.0",
     "healthCheckCommand": [
       "CMD-SHELL",
       "wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1"
     ],
     "healthCheckPath": "/actuator/health",
-    "subdomain": "dev.api"
+    "hostnamePrefix": "dev.api"
   },
 
   "release": {
@@ -30,15 +30,16 @@
     "computePlatform": "ecs",
     "imageSource": "dockerhub",
     "repositoryName": "dec1/spring-aws-app",
-    "s3BucketName": "my-backend-bucket-release",
-    "bucketIsCdkManaged": true,
+    "s3BucketName": "mpb-backend-bucket-release",
+    "s3BucketIsCdkManaged": true,
     "imageTag": "1.25.0",
     "healthCheckCommand": [
       "CMD-SHELL",
       "wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1"
     ],
     "healthCheckPath": "/actuator/health",
-    "subdomain": "api"
+    "hostnamePrefix": "api"
   }
+
 
 }

@@ -19,11 +19,11 @@ import { Construct } from 'constructs';
 export interface CertificateConstructProps {
   /**
    * The fully qualified domain name (FQDN) for which the certificate will be issued
-   * (e.g., 'api.example.com' or 'dev.api.example.com').
+   * (e.g., 'dev.api.example.com' or 'api.example.com').
    */
-  fullDomainName: string;
+  fqdn: string;
   /**
-   * The Route 53 hosted zone that corresponds to the domain. This is used by ACM
+   * The Route 53 hosted zone that corresponds to the apex domain. This is used by ACM
    * for DNS validation of the certificate request.
    */
   hostedZone: route53.IHostedZone;
@@ -36,10 +36,10 @@ export interface DnsRecordsConstructProps {
   /** The Route 53 hosted zone in which the DNS records will be created. */
   hostedZone: route53.IHostedZone;
   /**
-   * The subdomain part of the FQDN (e.g., 'api' or 'dev.api'). This will be used
-   * as the record name within the hosted zone.
+   * The hostname prefix - the part of the FQDN before the apex domain
+   * (e.g., 'dev.api' or 'api'). This will be used as the record name within the hosted zone.
    */
-  subdomain: string;
+  hostnamePrefix: string;
 
   /** The Application Load Balancer to point the alias record to (for ECS). */
   loadBalancer?: elbv2.IApplicationLoadBalancer;
@@ -65,7 +65,7 @@ export class CertificateConstruct extends Construct {
     super(scope, id);
 
     this.certificate = new acm.Certificate(this, 'Certificate', {
-      domainName: props.fullDomainName,
+      domainName: props.fqdn,
       validation: acm.CertificateValidation.fromDns(props.hostedZone),
     });
   }
@@ -89,22 +89,22 @@ export class DnsRecordsConstruct extends Construct {
     if (props.loadBalancer) {
         new route53.ARecord(this, 'AliasRecord', {
             zone: props.hostedZone,
-            recordName: props.subdomain, // This will be the 'name' part of the record, e.g., 'dev.api'
+            recordName: props.hostnamePrefix, // This will be the 'name' part of the record, e.g., 'dev.api'
             target: route53.RecordTarget.fromAlias(new route53Targets.LoadBalancerTarget(props.loadBalancer)),
-            comment: `Alias record pointing ${props.subdomain}.${props.hostedZone.zoneName} to the Application Load Balancer.`,
+            comment: `Alias record pointing ${props.hostnamePrefix}.${props.hostedZone.zoneName} to the Application Load Balancer.`,
         });
-      console.log(`[DNS] Created A-Record for ECS: ${props.subdomain}.${props.hostedZone.zoneName} -> ${props.loadBalancer.loadBalancerDnsName}`);
+      console.log(`[DNS] Created A-Record for ECS: ${props.hostnamePrefix}.${props.hostedZone.zoneName} -> ${props.loadBalancer.loadBalancerDnsName}`);
     
     } else if (props.eksAlbDnsName) {
         new route53.CnameRecord(this, 'K8sCnameRecord', {
             zone: props.hostedZone,
-            recordName: props.subdomain,
+            recordName: props.hostnamePrefix,
             domainName: props.eksAlbDnsName,
       });
-      console.log(`[DNS] Created CNAME Record for EKS: ${props.subdomain}.${props.hostedZone.zoneName} -> ${props.eksAlbDnsName}`);
+      console.log(`[DNS] Created CNAME Record for EKS: ${props.hostnamePrefix}.${props.hostedZone.zoneName} -> ${props.eksAlbDnsName}`);
     
     } else {
-      console.warn(`[DNS] Neither loadBalancer nor eksAlbDnsName provided for DNS records for subdomain: ${props.subdomain}. No DNS record created.`);
+      console.warn(`[DNS] Neither loadBalancer nor eksAlbDnsName provided for DNS records for hostname prefix: ${props.hostnamePrefix}. No DNS record created.`);
       throw new Error("Invalid DnsRecordsConstructProps: Must provide either 'loadBalancer' (for ECS) or 'eksAlbDnsName' (for K8s).");
     }
   }

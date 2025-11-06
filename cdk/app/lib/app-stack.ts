@@ -26,9 +26,9 @@ export interface AppStackProps extends cdk.StackProps {
   computePlatform: 'ecs' | 'kubernetes';
   stagingEnvironment: 'dev' | 'release';
   
-  domainName: string;
+  apexDomain: string;
   hostedZoneId: string;
-  subdomain: string;
+  hostnamePrefix: string;
   healthChecks: {
     containerHealthCheckCommand: string[];
     containerHealthCheckRetries: number;
@@ -117,14 +117,14 @@ export class AppStack extends cdk.Stack {
       tag:            props.tag,
     });
 
-    // DNS / Certificate
-    const fullDomainName = `${props.subdomain}.${props.domainName}`;
+    // DNS / Certificate - construct FQDN from hostname prefix + apex domain
+    const fqdn = `${props.hostnamePrefix}.${props.apexDomain}`;
     const hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
       hostedZoneId: props.hostedZoneId,
-      zoneName:     props.domainName,
+      zoneName:     props.apexDomain,
     });
     const acmCertificate = new CertificateConstruct(this, 'SslCertificateResource', {
-      fullDomainName,
+      fqdn,
       hostedZone,
     });
 
@@ -178,8 +178,8 @@ export class AppStack extends cdk.Stack {
 
       new DnsRecordsConstruct(this, 'ServiceDnsAliasRecords', {
         hostedZone,
-        subdomain:    props.subdomain,
-        loadBalancer: alb.loadBalancer,
+        hostnamePrefix: props.hostnamePrefix,
+        loadBalancer:   alb.loadBalancer,
       });
 
       if (fargateServices.blueService && fargateServices.greenService) {
@@ -204,7 +204,7 @@ export class AppStack extends cdk.Stack {
         description: 'DNS name of the Application Load Balancer',
       });
       this.serviceUrlOutput = new cdk.CfnOutput(this, 'ServiceUrl', {
-        value:       `https://${fullDomainName}`,
+        value:       `https://${fqdn}`,
         description: 'URL of the service',
       });
       
@@ -226,7 +226,7 @@ export class AppStack extends cdk.Stack {
     //     appPortNum:          props.appPortNum,
     //     //certificateArn:      acmCertificate.certificate.certificateArn, // Pass ACM cert ARN
     //     // webAclArn:           webAcl.webAclArn, // Pass WAF ARN
-    //     //fullDomainName:      fullDomainName, // Pass full domain name for Ingress host
+    //     //fqdn:                fqdn, // Pass FQDN for Ingress host
     //     // We no longer pass listener or ALB for K8s here, as Ingress Controller manages it
     //   });
 
@@ -235,7 +235,7 @@ export class AppStack extends cdk.Stack {
 
     //   new DnsRecordsConstruct(this, 'K8sDnsAliasRecords', {
     //     hostedZone,
-    //     subdomain:          props.subdomain,
+    //     hostnamePrefix:     props.hostnamePrefix,
     //     //eksAlbDnsName:      k8sIngressHostname, // Pass the Ingress hostname for Route 53
     //     // loadBalancer is not used for K8s
     //   });
@@ -247,7 +247,7 @@ export class AppStack extends cdk.Stack {
 
 
     //   this.serviceUrlOutput = new cdk.CfnOutput(this, 'ServiceUrl', {
-    //     value: `https://${fullDomainName}`,
+    //     value: `https://${fqdn}`,
     //     description: 'URL of the service (via EKS Ingress)',
     //   }); 
 

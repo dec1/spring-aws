@@ -20,8 +20,8 @@ export interface EnvConfig {
   readonly s3BucketName?: string;
   /** whether to import bucket should be created/deleted by cdk automatically or is independent*/
   readonly s3BucketIsCdkManaged?: boolean; 
-  /** subdomain (e.g. 'dev.api', 'k8s.dev.api', etc.) */
-  readonly subdomain?: string;
+  /** hostname prefix (e.g. 'dev.api', 'k8s.dev.api', etc.) - the part before the apex domain */
+  readonly hostnamePrefix?: string;
 }
 
 /**
@@ -31,7 +31,7 @@ export interface ResolvedAppConfig {
   readonly account: string;
   readonly region: string;
   readonly serviceName: string;
-  readonly domainName: string;
+  readonly apexDomain: string;
   readonly hostedZoneId: string;
   readonly appPortNum: number;
   /** map of all environment configs by key ('dev','k8s-dev','release','k8s-release') */
@@ -69,7 +69,7 @@ export function loadAppConfig(context: any): ResolvedAppConfig {
   const account = baseConfig.account ?? process.env.CDK_DEFAULT_ACCOUNT;
   const region  = baseConfig.region  ?? process.env.CDK_DEFAULT_REGION;
   const serviceName = baseConfig.serviceName ?? process.env.CDK_SERVICE_NAME;
-  const domainName  = baseConfig.domainName  ?? process.env.CDK_DOMAIN_NAME;
+  const apexDomain  = baseConfig.apexDomain  ?? process.env.CDK_APEX_DOMAIN;
   const hostedZoneId = baseConfig.hostedZoneId ?? process.env.CDK_HOSTED_ZONE_ID ?? '';
   const appPortNum   = Number(baseConfig.appPortNum ?? process.env.CDK_APP_PORT_NUM ?? 3000);
   const terminationWaitTimeMinutes =
@@ -86,8 +86,8 @@ export function loadAppConfig(context: any): ResolvedAppConfig {
   if (!serviceName) {
     throw new Error('CDK_SERVICE_NAME is required (via context, config file, or env)');
   }
-  if (!domainName) {
-    throw new Error('CDK_DOMAIN_NAME is required (via context, config file, or env)');
+  if (!apexDomain) {
+    throw new Error('CDK_APEX_DOMAIN is required (via context, config file, or env)');
   }
 
   // Extract each env config
@@ -103,12 +103,12 @@ export function loadAppConfig(context: any): ResolvedAppConfig {
       healthCheckPath:           raw.healthCheckPath,
       s3BucketName:              raw.s3BucketName,
       s3BucketIsCdkManaged:      raw.s3BucketIsCdkManaged,
-      subdomain:                 raw.subdomain,
+      hostnamePrefix:            raw.hostnamePrefix,
     };
   }
 
   const RESERVED = new Set([
-    'account','region','serviceName','domainName','hostedZoneId',
+    'account','region','serviceName','apexDomain','hostedZoneId',
     'appPortNum','terminationWaitTimeMinutes','wantGrafana'
   ]);
 
@@ -123,7 +123,7 @@ export function loadAppConfig(context: any): ResolvedAppConfig {
     account,
     region,
     serviceName,
-    domainName,
+    apexDomain,
     hostedZoneId,
     appPortNum,
     envConfigs,
