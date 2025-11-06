@@ -21,7 +21,7 @@ plugins {
 }
 
 group = "dec"
-version = "1.65.0"
+version = "1.66.0"
 val ver_jdk = 21
 
 kotlin {

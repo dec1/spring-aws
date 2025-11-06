@@ -164,7 +164,7 @@ Choose Docker Hub or Amazon ECR by uncommenting the appropriate line in `build.g
             * `set JIB_PASSWORD=<your-dockerhub-password>`
 
     - build and push:
-        - `./gradlew clean jib`
+        - **`./gradlew clean jib`**
 
 #####
 - **build** and **push** to **ECR**

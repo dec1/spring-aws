@@ -22,10 +22,13 @@ class ApiController(private val env: Environment){
     fun getAppName(): String = env.getProperty("spring.application.name") ?: "unknown"
 
     // http://localhost:8080/api/hello
-    @Operation(summary = "Brief Info", description = "Welcome confirmation message")
+    @Operation(summary = "Brief Info", description = "Welcome confirmation message with all environment variables")
     @RequestMapping("/hello", method = [RequestMethod.GET])
-    fun greet(): String {
-        return "Welcome to ${getAppName()}, version ${getAppVersion()}"
+    fun greet(): Map<String, Any> {
+        return mapOf(
+            "message" to "Welcome to ${getAppName()}, version ${getAppVersion()}",
+            "environment" to System.getenv()
+        )
     }
 
     // http://localhost:8080/api/http_hello
@@ -40,9 +43,13 @@ class ApiController(private val env: Environment){
     // http://localhost:8080/api/aws_hello
     @Operation(summary = "Query Aws Access", description = "Query Aws for the id and account of the caller (getCallerIdentity)")
     @RequestMapping("/aws_caller_info", method = [RequestMethod.GET])
-    fun greet_aws(): String {
-        val asw_val = Aws().test()
-        return greet() + ", aws says: $asw_val"
+    fun greet_aws(): Map<String, Any> {
+        val aws_val = Aws().test()
+        return mapOf(
+            "message" to "Welcome to ${getAppName()}, version ${getAppVersion()}",
+            "environment" to System.getenv(),
+            "aws_caller_identity" to aws_val
+        )
     }
 
     // http://localhost:8080/api/s3_insert?bucket_name=my-bucket-dec1b&object_name=obj34&object_value=57
