@@ -128,7 +128,7 @@ You may need to add the following to `gradle.properties` (or even better `~/.gra
 ```properties
 systemProp.jib.httpTimeout=300000
 systemProp.jib.connectionTimeout=300000
-```a
+```
 
 Also, `jibDockerBuild` can't be used to build local images (for local running/testing) if you're behind a proxy like [Zscaler](local/proxy/readme.md), since Jib can't configure containers with custom certificates needed to access the internet from behind the proxy.
 
