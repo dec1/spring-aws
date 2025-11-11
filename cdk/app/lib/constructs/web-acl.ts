@@ -39,6 +39,37 @@ export class WebAclConstruct extends Construct {
 
     // Define the rules for the WebACL
     const rules: wafv2.CfnWebACL.RuleProperty[] = [
+      // 0) CHANGE: Allow larger POST bodies by excluding the size-based body rule from CRS.
+      //            Excluding a managed subrule changes its action to COUNT (not BLOCK).
+      //            ALB + WAF still only *inspect* up to ~8 KB for ALB, but WAF won’t block solely on body size.
+      //            If you also want to relax size checks for URL/query/headers, add their SizeRestrictions_* names to excludedRules.
+      {
+        name: 'CommonRuleSet',
+        priority: 2,
+        overrideAction: { none: {} },
+        statement: {
+          managedRuleGroupStatement: {
+            vendorName: 'AWS',
+            name: 'AWSManagedRulesCommonRuleSet',
+            // CHANGE: exclude the body size subrule so large POSTs aren’t blocked by WAF
+            excludedRules: [
+              { name: 'SizeRestrictions_BODY' },
+              // Optional: uncomment to also relax other size checks for all endpoints
+              // { name: 'SizeRestrictions_QUERYSTRING' },
+              // { name: 'SizeRestrictions_URI' },
+              // { name: 'SizeRestrictions_URIPATH' },
+              // { name: 'SizeRestrictions_HEADERS' },
+              // { name: 'SizeRestrictions_Cookie_HEADER' },
+            ],
+          },
+        },
+        visibilityConfig: {
+          cloudWatchMetricsEnabled: true,
+          sampledRequestsEnabled: true,
+          metricName: 'CommonRuleSet',
+        },
+      },
+
       // 1) Rate limit
       {
         name: 'RateLimitRule',
@@ -56,24 +87,9 @@ export class WebAclConstruct extends Construct {
           metricName: 'RateLimitRule',
         },
       },
-      // 2) Common OWASP + XSS + SQLi
+
+      // 2) SQLi protection
       {
-        name: 'CommonRuleSet',
-        priority: 2,
-        overrideAction: { none: {} },
-        statement: {
-          managedRuleGroupStatement: {
-            vendorName: 'AWS',
-            name: 'AWSManagedRulesCommonRuleSet',
-          },
-        },
-        visibilityConfig: {
-          cloudWatchMetricsEnabled: true,
-          sampledRequestsEnabled: true,
-          metricName: 'CommonRuleSet',
-        },
-      },
-       {
         name: 'SQLiRuleSet',
         priority: 3,
         overrideAction: { none: {} },
@@ -89,6 +105,7 @@ export class WebAclConstruct extends Construct {
           metricName: 'SQLiRuleSet',
         },
       },
+
       // 3) IP reputation
       {
         name: 'IpReputation',
@@ -106,25 +123,27 @@ export class WebAclConstruct extends Construct {
           metricName: 'IpReputation',
         },
       },
-      // 4) Bot control (optional, extra fee)
-      {
-        name: 'BotControl',
-        priority: 5,
-        overrideAction: { none: {} },
-        statement: {
-          managedRuleGroupStatement: {
-            vendorName: 'AWS',
-            name: 'AWSManagedRulesBotControlRuleSet',
-          },
-        },
-        visibilityConfig: {
-          cloudWatchMetricsEnabled: true,
-          sampledRequestsEnabled: true,
-          metricName: 'BotControl',
-        },
-      },
-    ];
 
+      // 4) Bot control (optional, extra fee)
+      // has the disadvantage of also blocking sone dev tools (like postman, curl) unless they
+      // "spoof" - ie add extra headers to "pretend" they are different client browser
+    //   {
+    //     name: 'BotControl',
+    //     priority: 5,
+    //     overrideAction: { none: {} },
+    //     statement: {
+    //       managedRuleGroupStatement: {
+    //         vendorName: 'AWS',
+    //         name: 'AWSManagedRulesBotControlRuleSet',
+    //       },
+    //     },
+    //     visibilityConfig: {
+    //       cloudWatchMetricsEnabled: true,
+    //       sampledRequestsEnabled: true,
+    //       metricName: 'BotControl',
+    //     },
+    //   },
+    ];
 
     // Create the CfnWebACL resource
     const webAcl = new wafv2.CfnWebACL(this, 'WebAcl', {
