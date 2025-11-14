@@ -19,6 +19,34 @@ export interface WebAclConstructProps {
   // Add any other WAF-specific configurations you might need here
 }
 
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+// Matchers for the Content-Type header (case-insensitive).
+// - Header name must be lowercase ('content-type').
+// - LOWERCASE transform makes value comparisons case-insensitive.
+
+/** Content-Type starts with the given prefix (e.g. 'application/json'). */
+const ctStartsWith = (prefix: string): wafv2.CfnWebACL.StatementProperty => ({
+  byteMatchStatement: {
+    fieldToMatch: { singleHeader: { name: 'content-type' } },
+    positionalConstraint: 'STARTS_WITH',
+    searchString: prefix.toLowerCase(),
+    textTransformations: [{ priority: 0, type: 'LOWERCASE' }],
+  },
+});
+
+/** Content-Type contains the given substring (e.g. '+json', 'spreadsheetml'). */
+const ctContains = (substring: string): wafv2.CfnWebACL.StatementProperty => ({
+  byteMatchStatement: {
+    fieldToMatch: { singleHeader: { name: 'content-type' } },
+    positionalConstraint: 'CONTAINS',
+    searchString: substring.toLowerCase(),
+    textTransformations: [{ priority: 0, type: 'LOWERCASE' }],
+  },
+});
+
 /**
  * A CDK Construct that provisions a regional AWS WAFv2 WebACL with common rules.
  */
@@ -39,38 +67,7 @@ export class WebAclConstruct extends Construct {
 
     // Define the rules for the WebACL
     const rules: wafv2.CfnWebACL.RuleProperty[] = [
-      // 0) CHANGE: Allow larger POST bodies by excluding the size-based body rule from CRS.
-      //            Excluding a managed subrule changes its action to COUNT (not BLOCK).
-      //            ALB + WAF still only *inspect* up to ~8 KB for ALB, but WAF won’t block solely on body size.
-      //            If you also want to relax size checks for URL/query/headers, add their SizeRestrictions_* names to excludedRules.
-      {
-        name: 'CommonRuleSet',
-        priority: 2,
-        overrideAction: { none: {} },
-        statement: {
-          managedRuleGroupStatement: {
-            vendorName: 'AWS',
-            name: 'AWSManagedRulesCommonRuleSet',
-            // CHANGE: exclude the body size subrule so large POSTs aren’t blocked by WAF
-            excludedRules: [
-              { name: 'SizeRestrictions_BODY' },
-              // Optional: uncomment to also relax other size checks for all endpoints
-              // { name: 'SizeRestrictions_QUERYSTRING' },
-              // { name: 'SizeRestrictions_URI' },
-              // { name: 'SizeRestrictions_URIPATH' },
-              // { name: 'SizeRestrictions_HEADERS' },
-              // { name: 'SizeRestrictions_Cookie_HEADER' },
-            ],
-          },
-        },
-        visibilityConfig: {
-          cloudWatchMetricsEnabled: true,
-          sampledRequestsEnabled: true,
-          metricName: 'CommonRuleSet',
-        },
-      },
-
-      // 1) Rate limit
+      // 1) Rate limit - applies to all requests
       {
         name: 'RateLimitRule',
         priority: 1,
@@ -88,28 +85,10 @@ export class WebAclConstruct extends Construct {
         },
       },
 
-      // 2) SQLi protection
-      {
-        name: 'SQLiRuleSet',
-        priority: 3,
-        overrideAction: { none: {} },
-        statement: {
-          managedRuleGroupStatement: {
-            vendorName: 'AWS',
-            name: 'AWSManagedRulesSQLiRuleSet',
-          },
-        },
-        visibilityConfig: {
-          cloudWatchMetricsEnabled: true,
-          sampledRequestsEnabled: true,
-          metricName: 'SQLiRuleSet',
-        },
-      },
-
-      // 3) IP reputation
+      // 2) IP reputation - applies to all requests
       {
         name: 'IpReputation',
-        priority: 4,
+        priority: 2,
         overrideAction: { none: {} },
         statement: {
           managedRuleGroupStatement: {
@@ -124,25 +103,114 @@ export class WebAclConstruct extends Construct {
         },
       },
 
-      // 4) Bot control (optional, extra fee)
+      // 3) Binary content allow rule
+      //
+      //    Explicitly allows binary uploads and stops further processing.
+      //
+      //    Why: WAF's text-focused rules (XSS/command injection patterns) do not add meaningful
+      //         protection for binary formats (e.g., XLSX, PDFs) and can produce false positives.
+      //
+      //    What happens:
+      //      - Textual content (JSON, text/*, forms) -> continues to pattern matching rules below
+      //      - Everything else (binary/unknown types) -> allowed here, stops processing
+      //
+      //    Security note:
+      //      - Binary uploads still pass the rate limit and IP reputation checks above.
+      //      - Perform file-type validation, size limits and malware scanning in the application.
+      {
+        name: 'AllowBinaryContent',
+        priority: 3,
+        action: { allow: {} },
+        statement: {
+          notStatement: {
+            statement: {
+              orStatement: {
+                statements: [
+                  ctStartsWith('application/json'),
+                  ctContains('+json'), // vendor JSON types, e.g. application/ld+json, application/problem+json
+                  ctStartsWith('text/'),
+                  ctStartsWith('application/x-www-form-urlencoded'),
+                ],
+              },
+            },
+          },
+        },
+        visibilityConfig: {
+          cloudWatchMetricsEnabled: true,
+          sampledRequestsEnabled: true,
+          metricName: 'AllowBinaryContent',
+        },
+      },
+
+      // 4) Common Rule Set - text-based attack detection (XSS, command injection, etc.)
+      //
+      //    Only textual requests reach this rule (binary was already allowed and stopped above).
+      //    Body size restriction removed to allow larger textual POST requests.
+      {
+        name: 'CommonRuleSet',
+        priority: 4,
+        overrideAction: { none: {} },
+        statement: {
+          managedRuleGroupStatement: {
+            vendorName: 'AWS',
+            name: 'AWSManagedRulesCommonRuleSet',
+            // Allow larger POST bodies by excluding the size-based body rule from CRS.
+            // Excluding a managed subrule changes its action to COUNT (not BLOCK).
+            excludedRules: [
+              { name: 'SizeRestrictions_BODY' },
+              // Optional: if you also want to relax size checks for URL/query/headers, add:
+              // { name: 'SizeRestrictions_QUERYSTRING' },
+              // { name: 'SizeRestrictions_URI' },
+              // { name: 'SizeRestrictions_URIPATH' },
+              // { name: 'SizeRestrictions_HEADERS' },
+              // { name: 'SizeRestrictions_Cookie_HEADER' },
+            ],
+          },
+        },
+        visibilityConfig: {
+          cloudWatchMetricsEnabled: true,
+          sampledRequestsEnabled: true,
+          metricName: 'CommonRuleSet',
+        },
+      },
+
+      // 5) SQLi protection - only textual requests reach this rule
+      {
+        name: 'SQLiRuleSet',
+        priority: 5,
+        overrideAction: { none: {} },
+        statement: {
+          managedRuleGroupStatement: {
+            vendorName: 'AWS',
+            name: 'AWSManagedRulesSQLiRuleSet',
+          },
+        },
+        visibilityConfig: {
+          cloudWatchMetricsEnabled: true,
+          sampledRequestsEnabled: true,
+          metricName: 'SQLiRuleSet',
+        },
+      },
+
+      // 6) Bot control (optional, extra fee)
       // has the disadvantage of also blocking sone dev tools (like postman, curl) unless they
       // "spoof" - ie add extra headers to "pretend" they are different client browser
-    //   {
-    //     name: 'BotControl',
-    //     priority: 5,
-    //     overrideAction: { none: {} },
-    //     statement: {
-    //       managedRuleGroupStatement: {
-    //         vendorName: 'AWS',
-    //         name: 'AWSManagedRulesBotControlRuleSet',
-    //       },
-    //     },
-    //     visibilityConfig: {
-    //       cloudWatchMetricsEnabled: true,
-    //       sampledRequestsEnabled: true,
-    //       metricName: 'BotControl',
-    //     },
-    //   },
+      // {
+      //   name: 'BotControl',
+      //   priority: 6,
+      //   overrideAction: { none: {} },
+      //   statement: {
+      //     managedRuleGroupStatement: {
+      //       vendorName: 'AWS',
+      //       name: 'AWSManagedRulesBotControlRuleSet',
+      //     },
+      //   },
+      //   visibilityConfig: {
+      //     cloudWatchMetricsEnabled: true,
+      //     sampledRequestsEnabled: true,
+      //     metricName: 'BotControl',
+      //   },
+      // },
     ];
 
     // Create the CfnWebACL resource
